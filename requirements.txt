@@ -51,7 +51,6 @@ PyMySQL==1.1.2
 pyotp==2.9.0
 python-dotenv==1.2.2
 pyunormalize==17.0.0
-pywin32==311
 qrcode==8.2
 referencing==0.37.0
 regex==2026.2.28
