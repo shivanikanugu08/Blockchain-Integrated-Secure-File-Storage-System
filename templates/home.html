@@ -1,0 +1,521 @@
+{% extends "base.html" %}
+
+{% block title %}Home - SecureCloud{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <div class="brand-logo navbar-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureCloud</span>
+            </div>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}"><i class="fas fa-th-large me-2"></i>Dashboard</a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        {% if current_user.profile_picture %}
+                        <img src="{{ url_for('profile_pic', filename=current_user.profile_picture) }}" class="profile-pic-nav" alt="Profile">
+                        {% else %}
+                        <img src="https://via.placeholder.com/40x40/6c757d/ffffff?text={{ current_user.username[0]|upper }}" class="profile-pic-nav" alt="Profile">
+                        {% endif %}
+                        {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('change_password') }}"><i class="fas fa-key me-2"></i>Change Password</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('setup_2fa') }}"><i class="fas fa-shield-alt me-2"></i>2FA Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content" style="margin-top: 80px; padding: 2rem 0;">
+        <div class="container">
+            <!-- Welcome Section -->
+            <div class="welcome-section mb-5">
+                <h1 class="welcome-title">
+                    Welcome back, <span class="gradient-text">{{ current_user.username }}!</span>
+                </h1>
+                <p class="welcome-subtitle">Manage your secure cloud storage</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-primary">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>{{ total_files or 0 }}</h3>
+                            <p>Total Files</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-success">
+                            <i class="fas fa-hdd"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>
+                                {% if total_storage %}
+                                    {% if total_storage < 1024 %}
+                                        {{ total_storage }} B
+                                    {% elif total_storage < 1048576 %}
+                                        {{ (total_storage / 1024)|round(1) }} KB
+                                    {% elif total_storage < 1073741824 %}
+                                        {{ (total_storage / 1048576)|round(1) }} MB
+                                    {% else %}
+                                        {{ (total_storage / 1073741824)|round(2) }} GB
+                                    {% endif %}
+                                {% else %}
+                                    0 B
+                                {% endif %}
+                            </h3>
+                            <p>Storage Used</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div class="stat-icon bg-info">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>{{ recent_files|length if recent_files else 0 }}</h3>
+                            <p>Recent Files</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="quick-actions mb-5">
+                <h4 class="section-title mb-3">Quick Actions</h4>
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('upload') }}" class="action-card">
+                            <div class="action-icon bg-primary">
+                                <i class="fas fa-upload"></i>
+                            </div>
+                            <h5>Upload File</h5>
+                            <p>Add new files to your storage</p>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('dashboard') }}" class="action-card">
+                            <div class="action-icon bg-success">
+                                <i class="fas fa-th-large"></i>
+                            </div>
+                            <h5>Dashboard</h5>
+                            <p>View all your files</p>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('profile') }}" class="action-card">
+                            <div class="action-icon bg-warning">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <h5>Profile</h5>
+                            <p>Manage your account</p>
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('blockchain_activity') }}" class="action-card">
+                            <div class="action-icon bg-info">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <h5>Activity Logs</h5>
+                            <p>View activity records</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Files -->
+            {% if recent_files %}
+            <div class="recent-files">
+                <h4 class="section-title mb-3">Recent Files</h4>
+                <div class="file-list">
+                    {% for file in recent_files %}
+                    <div class="file-item">
+                        <div class="file-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div class="file-info">
+                            <h6>{{ file.get_filename() }}</h6>
+                            <small>{{ file.upload_date.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <div class="file-actions">
+                            <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.home-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+    min-height: 100vh;
+}
+
+.welcome-section {
+    text-align: center;
+    padding: 2rem 0;
+}
+
+.welcome-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 0.5rem;
+}
+
+.welcome-subtitle {
+    font-size: 1.125rem;
+    color: #94a3b8;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.stat-content h3 {
+    color: #f8fafc;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.stat-content p {
+    color: #94a3b8;
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.section-title {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
+.action-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    display: block;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.action-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-5px);
+    text-decoration: none;
+}
+
+.action-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin: 0 auto 1rem;
+}
+
+.action-card h5 {
+    color: #f8fafc;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.action-card p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.file-list {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6366f1;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-info h6 {
+    color: #f8fafc;
+    margin: 0;
+    font-weight: 600;
+}
+
+.file-info small {
+    color: #94a3b8;
+}
+
+.profile-pic-nav {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.5rem;
+}
+
+.navbar {
+    background: rgba(15, 23, 42, 0.9) !important;
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-section {
+    padding: 140px 0 80px;
+}
+
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.gradient-text {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: #cbd5e1;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.hero-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 400px;
+}
+
+.cloud-animation {
+    position: relative;
+    animation: float 3s ease-in-out infinite;
+}
+
+.cloud-animation > i {
+    font-size: 8rem;
+    color: #6366f1;
+    filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.5));
+}
+
+.security-shield {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.security-shield i {
+    font-size: 3rem;
+    color: #10b981;
+    filter: drop-shadow(0 0 15px rgba(16, 185, 129, 0.7));
+}
+
+.features-section {
+    padding: 80px 0;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.section-header {
+    margin-bottom: 4rem;
+}
+
+.section-header h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 1rem;
+}
+
+.section-header p {
+    font-size: 1.125rem;
+    color: #94a3b8;
+}
+
+.feature-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.feature-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+}
+
+.feature-icon {
+    width: 80px;
+    height: 80px;
+    background: var(--primary-gradient);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2rem;
+    color: white;
+    box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
+}
+
+.feature-card h4 {
+    color: #f8fafc;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.feature-card p {
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+.cta-section {
+    padding: 80px 0;
+}
+
+.cta-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 4rem;
+    text-align: center;
+    backdrop-filter: blur(20px);
+}
+
+.cta-card h2 {
+    color: #f8fafc;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.cta-card p {
+    color: #cbd5e1;
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+}
+
+.footer {
+    padding: 2rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.footer p {
+    color: #94a3b8;
+    margin: 0;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-actions {
+        justify-content: center;
+    }
+    
+    .cloud-animation > i {
+        font-size: 6rem;
+    }
+}
+</style>
+{% endblock %}

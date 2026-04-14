@@ -1,0 +1,90 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.*
+!.env.example
+.env.mysql
+.env.local
+.env.production
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+instance/
+*.db-journal
+
+# Uploads and user data
+uploads/
+*.enc
+*.encrypted
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Encryption keys
+.encryption_key
+*.key
+*.pem
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Node modules (if any)
+node_modules/
+npm-debug.log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Blockchain private keys (if stored locally)
+private_key.txt
+wallet.json
+
+# Production files
+*.pid
+*.sock

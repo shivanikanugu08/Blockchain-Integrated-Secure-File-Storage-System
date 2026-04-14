@@ -1,0 +1,435 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File - SecureCloud{% endblock %}
+
+{% block content %}
+<div class="upload-container">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <div class="brand-logo navbar-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureCloud</span>
+            </div>
+            
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="{{ url_for('dashboard') }}"><i class="fas fa-arrow-left me-2"></i>Back to Dashboard</a>
+                <a class="nav-link" href="{{ url_for('home') }}"><i class="fas fa-home me-2"></i>Home</a>
+                <div class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        {% if current_user.profile_picture %}
+                        <img src="{{ url_for('profile_pic', filename=current_user.profile_picture) }}" class="profile-pic-nav" alt="Profile">
+                        {% else %}
+                        <img src="https://via.placeholder.com/40x40/6c757d/ffffff?text={{ current_user.username[0]|upper }}" class="profile-pic-nav" alt="Profile">
+                        {% endif %}
+                        {{ current_user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="upload-card">
+                        <div class="upload-header">
+                            <h2><i class="fas fa-cloud-upload-alt me-2"></i>Upload File</h2>
+                            <p>Securely upload and encrypt your files</p>
+                        </div>
+
+                        <!-- Flash Messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'info' }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <!-- Upload Area -->
+                        <div class="upload-area" id="uploadArea">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <h4>Drag & Drop your files here</h4>
+                            <p>or</p>
+                            <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-folder-open me-2"></i>Browse Files
+                            </button>
+                            <input type="file" id="fileInput" name="file" style="display: none;" multiple>
+                            <p class="upload-hint mt-3">
+                                <small>Maximum file size: 100MB. Files are encrypted with AES-256 before upload.</small>
+                            </p>
+                        </div>
+
+                        <!-- File List -->
+                        <div class="file-list" id="fileList" style="display: none;">
+                            <h5>Selected Files</h5>
+                            <div id="fileItems"></div>
+                            <button class="btn btn-success w-100 mt-3" id="uploadBtn" onclick="uploadFiles()">
+                                <i class="fas fa-upload me-2"></i>Upload Files
+                            </button>
+                        </div>
+
+                        <!-- Upload Progress -->
+                        <div class="upload-progress" id="uploadProgress" style="display: none;">
+                            <div class="progress mb-3">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                     role="progressbar" 
+                                     id="progressBar" 
+                                     style="width: 0%">
+                                    0%
+                                </div>
+                            </div>
+                            <p class="text-center" id="progressText">Preparing upload...</p>
+                        </div>
+
+                        <!-- Security Features -->
+                        <div class="security-features mt-4">
+                            <h6><i class="fas fa-shield-check me-2"></i>Security Features</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-lock text-primary"></i>
+                                        <span>AES-256 Encryption</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-link text-success"></i>
+                                        <span>Blockchain Recording</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-fingerprint text-warning"></i>
+                                        <span>SHA-256 Integrity</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="feature-item">
+                                        <i class="fas fa-eye-slash text-danger"></i>
+                                        <span>Zero-Knowledge Storage</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedFiles = [];
+
+// Drag and drop handlers
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('dragover');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+});
+
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+    selectedFiles = Array.from(files);
+    displayFiles();
+}
+
+function displayFiles() {
+    const fileList = document.getElementById('fileList');
+    const fileItems = document.getElementById('fileItems');
+    
+    if (selectedFiles.length === 0) {
+        fileList.style.display = 'none';
+        return;
+    }
+    
+    fileList.style.display = 'block';
+    fileItems.innerHTML = '';
+    
+    selectedFiles.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        fileItem.innerHTML = `
+            <div class="file-info">
+                <i class="fas fa-file"></i>
+                <span>${file.name}</span>
+                <small>${formatFileSize(file.size)}</small>
+            </div>
+            <button class="btn btn-sm btn-danger" onclick="removeFile(${index})">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        fileItems.appendChild(fileItem);
+    });
+}
+
+function removeFile(index) {
+    selectedFiles.splice(index, 1);
+    displayFiles();
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+async function uploadFiles() {
+    if (selectedFiles.length === 0) {
+        alert('Please select at least one file');
+        return;
+    }
+    
+    const uploadBtn = document.getElementById('uploadBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    
+    uploadBtn.disabled = true;
+    uploadProgress.style.display = 'block';
+    fileList.style.display = 'none';
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        progressText.textContent = `Uploading ${file.name}... (${i + 1}/${selectedFiles.length})`;
+        progressBar.style.width = `${((i + 1) / selectedFiles.length) * 100}%`;
+        progressBar.textContent = `${Math.round(((i + 1) / selectedFiles.length) * 100)}%`;
+        
+        try {
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                successCount++;
+            } else {
+                failCount++;
+                console.error('Upload failed:', data.error);
+            }
+        } catch (error) {
+            failCount++;
+            console.error('Upload error:', error);
+        }
+    }
+    
+    progressBar.style.width = '100%';
+    progressBar.textContent = '100%';
+    
+    if (failCount === 0) {
+        progressText.textContent = `Successfully uploaded ${successCount} file(s)!`;
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-success');
+        
+        setTimeout(() => {
+            window.location.href = '/dashboard';
+        }, 2000);
+    } else {
+        progressText.textContent = `Uploaded ${successCount} file(s), ${failCount} failed.`;
+        progressBar.classList.add('bg-warning');
+        uploadBtn.disabled = false;
+    }
+}
+</script>
+{% endblock %}
+
+{% block styles %}
+<style>
+.upload-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+}
+
+.main-content {
+    padding: 2rem 0;
+    margin-top: 80px;
+}
+
+.upload-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2.5rem;
+}
+
+.upload-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.upload-header h2 {
+    color: #f8fafc;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.upload-header p {
+    color: #94a3b8;
+    margin: 0;
+}
+
+.upload-area {
+    border: 3px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.upload-area.dragover {
+    border-color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: #6366f1;
+    margin-bottom: 1rem;
+}
+
+.upload-area h4 {
+    color: #f8fafc;
+    margin-bottom: 1rem;
+}
+
+.upload-area p {
+    color: #94a3b8;
+    margin: 0.5rem 0;
+}
+
+.upload-hint {
+    color: #64748b;
+}
+
+.file-list {
+    margin-top: 2rem;
+}
+
+.file-list h5 {
+    color: #f8fafc;
+    margin-bottom: 1rem;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #f8fafc;
+}
+
+.file-info i {
+    color: #6366f1;
+}
+
+.file-info small {
+    color: #94a3b8;
+    margin-left: auto;
+    margin-right: 1rem;
+}
+
+.upload-progress {
+    margin-top: 2rem;
+}
+
+.progress {
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+}
+
+.security-features {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.security-features h6 {
+    color: #f8fafc;
+    margin-bottom: 1rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 0;
+    color: #cbd5e1;
+}
+
+.feature-item i {
+    font-size: 1.2rem;
+}
+
+.profile-pic-nav {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.5rem;
+}
+</style>
+{% endblock %}

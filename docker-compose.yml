@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - MYSQL_HOST=db
+      - MYSQL_USER=secure_user
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-secure_password_change_me}
+      - MYSQL_DATABASE=secure_storage
+      - SECRET_KEY=${SECRET_KEY:-change-this-secret-key}
+      - FLASK_ENV=production
+      - FLASK_DEBUG=False
+    volumes:
+      - ./uploads:/app/uploads
+      - ./.env.mysql:/app/.env.mysql:ro
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - securecloud-network
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root_password_change_me}
+      - MYSQL_DATABASE=secure_storage
+      - MYSQL_USER=secure_user
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-secure_password_change_me}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql_schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root_password_change_me}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - securecloud-network
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  securecloud-network:
+    driver: bridge
